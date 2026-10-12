@@ -54,11 +54,13 @@ below for detail and for what's still blocked.
 - [x] `npm run lint`, `npx tsc --noEmit`, and `npm run build` all pass
       cleanly on the bare scaffold (confirms `output: "standalone"` +
       Prisma 7 driver-adapter setup actually works end to end).
-- [ ] First migration applied against a real MySQL database — **blocked**:
-      no `DATABASE_URL` configured yet (no MySQL database has been created
-      on Hostinger, or credentials haven't been shared). See "Blockers"
-      below. Schema is fully drafted and ready to apply the moment a
-      connection string is available.
+- [x] Initial migration applied — against a **local development** MySQL 8.4
+      instance running in Docker (container `bfdo-mysql-dev`, mapped to host
+      port **3307**, not 3306 — this machine already runs an unrelated
+      project's MySQL container on 3306, so 3307 avoids any conflict). All
+      20 tables created and verified. Production migration against the real
+      Hostinger database is still pending real credentials — see
+      "Blockers" below.
 
 ## Phase 2 — Authentication & permissions
 
@@ -102,6 +104,31 @@ below for detail and for what's still blocked.
       `docs/backup-recovery.md` completed.
 - [ ] Lint, typecheck, build all passing.
 - [ ] Final readiness review against the spec's Definition of Done.
+
+## Local development database
+
+A dedicated MySQL container for this project runs in Docker:
+
+```
+docker run -d \
+  --name bfdo-mysql-dev \
+  -e MYSQL_ROOT_PASSWORD=bfdo_dev_root_pw \
+  -e MYSQL_DATABASE=bfdo_management \
+  -e MYSQL_USER=bfdo_app \
+  -e MYSQL_PASSWORD=bfdo_dev_app_pw \
+  -p 3307:3306 \
+  mysql:8
+```
+
+(Already created once — after a machine restart, Docker Desktop must be
+running and the container restarted with `docker start bfdo-mysql-dev`
+rather than re-run, or you'll get a "container name already in use" error.)
+`.env`'s `DATABASE_URL` points at `localhost:3307` with these dev-only
+credentials. This is intentionally on a non-default port (3307, not 3306)
+because this machine already runs an unrelated project's MySQL container
+on the standard port — the two are fully isolated from each other.
+
+These are throwaway local credentials, not used anywhere near production.
 
 ## Blockers / things only the user can provide
 
