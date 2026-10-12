@@ -36,6 +36,10 @@ yarn-error.log*
 # vercel
 .vercel
 
+# local private file storage (digital archive uploads) — never committed
+/storage/
+/.local-storage/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

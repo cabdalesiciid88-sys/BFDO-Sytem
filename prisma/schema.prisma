@@ -1,0 +1,565 @@
+// BFDO Management System — database schema
+// MySQL (Hostinger-hosted) accessed through Prisma ORM.
+// No Row-Level Security exists at this layer (MySQL has no RLS equivalent to
+// Postgres) — every authorization rule lives in lib/permissions and must be
+// called from every server action / route handler that touches this schema.
+// See docs/database-schema.md and docs/permissions.md.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Connection URL lives in prisma.config.ts (Prisma 7+ moved it out of the
+// schema file). PrismaClient itself connects via a driver adapter — see
+// lib/db/client.ts.
+datasource db {
+  provider = "mysql"
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum Role {
+  SYSTEM_ADMIN
+  LEADERSHIP
+  PROJECT_MANAGER
+  COORDINATOR
+  TEAM_MEMBER
+}
+
+enum UserStatus {
+  INVITED
+  ACTIVE
+  DEACTIVATED
+}
+
+enum ProjectMemberRole {
+  MANAGER
+  COORDINATOR
+  MEMBER
+}
+
+enum ProjectStatus {
+  PLANNED
+  ACTIVE
+  ON_HOLD
+  COMPLETED
+  ARCHIVED
+}
+
+enum RecordStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  BLOCKED
+  COMPLETED
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum MediaCategory {
+  PHOTO
+  DOCUMENT
+  VIDEO
+  REPORT
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  REVOKED
+}
+
+enum DecisionStatus {
+  OPEN
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum NotificationType {
+  TASK_ASSIGNED
+  TASK_OVERDUE
+  MEDIA_SUBMITTED
+  MEDIA_APPROVED
+  MEDIA_REJECTED
+  PROJECT_ASSIGNED
+  MEETING_SCHEDULED
+  GENERAL
+}
+
+// ---------------------------------------------------------------------------
+// Identity & access
+// ---------------------------------------------------------------------------
+
+model User {
+  id           String     @id @default(uuid())
+  email        String     @unique
+  passwordHash String
+  fullName     String
+  role         Role       @default(TEAM_MEMBER)
+  status       UserStatus @default(INVITED)
+  avatarPath   String?
+  phone        String?
+
+  departmentId String?
+  department   Department? @relation(fields: [departmentId], references: [id])
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  lastLoginAt DateTime?
+
+  sessions            Session[]
+  passwordResetTokens PasswordResetToken[]
+
+  managedProjects        Project[]              @relation("ProjectManager")
+  projectMemberships     ProjectMember[]
+  createdActivities      Activity[]             @relation("ActivityCreatedBy")
+  responsibleActivities  Activity[]             @relation("ActivityResponsible")
+  activityParticipations ActivityParticipant[]
+  assignedTasks          Task[]                 @relation("TaskAssignee")
+  createdTasks           Task[]                 @relation("TaskCreator")
+  createdMeetings        Meeting[]              @relation("MeetingCreator")
+  meetingParticipations  MeetingParticipant[]
+  responsibleDecisions   Decision[]             @relation("DecisionResponsible")
+  uploadedMedia          MediaAsset[]           @relation("MediaUploader")
+  submittedApprovals     MediaApproval[]        @relation("ApprovalSubmitter")
+  reviewedApprovals      MediaApproval[]        @relation("ApprovalReviewer")
+  generatedReports       Report[]               @relation("ReportGeneratedBy")
+  auditLogs              AuditLog[]
+  notifications          Notification[]
+
+  @@index([role])
+  @@index([status])
+  @@map("users")
+}
+
+model Department {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?  @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users User[]
+
+  @@map("departments")
+}
+
+/// Server-side session record. Raw token is only ever held in the httpOnly
+/// cookie; this table stores a SHA-256 hash of it so a leaked DB dump cannot
+/// be replayed as a live session. Deactivating a user deletes their rows here
+/// for immediate revocation (see lib/permissions/deactivate-user).
+model Session {
+  id        String   @id @default(uuid())
+  tokenHash String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userAgent String?
+  ipAddress String?
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+model PasswordResetToken {
+  id        String    @id @default(uuid())
+  tokenHash String    @unique
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+  @@map("password_reset_tokens")
+}
+
+// ---------------------------------------------------------------------------
+// Projects
+// ---------------------------------------------------------------------------
+
+model Project {
+  id            String        @id @default(uuid())
+  referenceCode String        @unique
+  title         String
+  description   String?       @db.Text
+  objectives    String?       @db.Text
+  category      String?
+  location      String?
+  startDate     DateTime?
+  endDate       DateTime?
+  status        ProjectStatus @default(PLANNED)
+
+  managerId String
+  manager   User   @relation("ProjectManager", fields: [managerId], references: [id])
+
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  archivedAt DateTime?
+
+  members      ProjectMember[]
+  activities   Activity[]
+  tasks        Task[]
+  meetings     Meeting[]
+  decisions    Decision[]
+  reports      Report[]
+  projectMedia ProjectMedia[]
+
+  @@index([status])
+  @@index([managerId])
+  @@index([category])
+  @@map("projects")
+}
+
+model ProjectMember {
+  id            String            @id @default(uuid())
+  projectId     String
+  project       Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId        String
+  user          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  roleInProject ProjectMemberRole @default(MEMBER)
+  addedAt       DateTime          @default(now())
+
+  @@unique([projectId, userId])
+  @@index([userId])
+  @@map("project_members")
+}
+
+// ---------------------------------------------------------------------------
+// Activity register
+// ---------------------------------------------------------------------------
+
+model Activity {
+  id            String       @id @default(uuid())
+  referenceCode String       @unique
+  title         String
+  description   String?      @db.Text
+  category      String?
+
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id])
+
+  activityDate DateTime
+  location     String?
+
+  responsibleId String
+  responsible   User   @relation("ActivityResponsible", fields: [responsibleId], references: [id])
+
+  outcomes String? @db.Text
+  status   RecordStatus @default(ACTIVE)
+
+  createdById String
+  createdBy   User   @relation("ActivityCreatedBy", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Set only when a historical record is imported after the fact, so the
+  // original event date (activityDate) is never confused with when it was
+  // entered into the system.
+  importedFromSource String?
+  importedAt         DateTime?
+
+  participants  ActivityParticipant[]
+  tasks         Task[]
+  activityMedia ActivityMedia[]
+
+  @@index([activityDate])
+  @@index([projectId])
+  @@index([category])
+  @@index([location])
+  @@index([responsibleId])
+  @@map("activities")
+}
+
+model ActivityParticipant {
+  id         String   @id @default(uuid())
+  activityId String
+  activity   Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([activityId, userId])
+  @@map("activity_participants")
+}
+
+// ---------------------------------------------------------------------------
+// Tasks
+// ---------------------------------------------------------------------------
+
+model Task {
+  id              String       @id @default(uuid())
+  title           String
+  description     String?      @db.Text
+
+  assigneeId String?
+  assignee   User?   @relation("TaskAssignee", fields: [assigneeId], references: [id])
+
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id])
+
+  activityId String?
+  activity   Activity? @relation(fields: [activityId], references: [id])
+
+  priority        TaskPriority @default(MEDIUM)
+  dueDate         DateTime?
+  status          TaskStatus   @default(TODO)
+  completionNotes String?      @db.Text
+
+  createdById String
+  createdBy   User     @relation("TaskCreator", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  completedAt DateTime?
+
+  @@index([status])
+  @@index([assigneeId])
+  @@index([dueDate])
+  @@index([projectId])
+  @@map("tasks")
+}
+
+// ---------------------------------------------------------------------------
+// Meetings & decisions
+// ---------------------------------------------------------------------------
+
+model Meeting {
+  id       String   @id @default(uuid())
+  title    String
+  heldAt   DateTime
+  location String?
+  method   String?
+  agenda   String?  @db.Text
+  notes    String?  @db.Text
+
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id])
+
+  createdById String
+  createdBy   User     @relation("MeetingCreator", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  participants MeetingParticipant[]
+  decisions    Decision[]
+  attachments  MeetingAttachment[]
+
+  @@index([heldAt])
+  @@index([projectId])
+  @@map("meetings")
+}
+
+model MeetingParticipant {
+  id        String  @id @default(uuid())
+  meetingId String
+  meeting   Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([meetingId, userId])
+  @@map("meeting_participants")
+}
+
+model MeetingAttachment {
+  id           String     @id @default(uuid())
+  meetingId    String
+  meeting      Meeting    @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  mediaAssetId String
+  mediaAsset   MediaAsset @relation(fields: [mediaAssetId], references: [id])
+
+  @@unique([meetingId, mediaAssetId])
+  @@map("meeting_attachments")
+}
+
+model Decision {
+  id          String  @id @default(uuid())
+  description String  @db.Text
+  decidedAt   DateTime
+
+  responsibleId String
+  responsible   User   @relation("DecisionResponsible", fields: [responsibleId], references: [id])
+
+  meetingId String?
+  meeting   Meeting? @relation(fields: [meetingId], references: [id])
+
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id])
+
+  followUpAction String?        @db.Text
+  status         DecisionStatus @default(OPEN)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([projectId])
+  @@map("decisions")
+}
+
+// ---------------------------------------------------------------------------
+// Reporting
+// ---------------------------------------------------------------------------
+
+/// A record of a report that was generated, for history/audit purposes.
+/// The report content itself is produced on demand from live data; this row
+/// just remembers what was run, by whom, and (optionally) where the exported
+/// file was saved in private storage.
+model Report {
+  id         String   @id @default(uuid())
+  title      String
+  reportType String
+  parameters Json
+
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id])
+
+  filePath String?
+
+  generatedById String
+  generatedBy   User     @relation("ReportGeneratedBy", fields: [generatedById], references: [id])
+  generatedAt   DateTime @default(now())
+
+  @@index([reportType])
+  @@index([projectId])
+  @@map("reports")
+}
+
+// ---------------------------------------------------------------------------
+// Digital archive & public gallery
+// ---------------------------------------------------------------------------
+
+/// Metadata only — the actual bytes live on disk under a generated (never
+/// user-supplied) path. See lib/storage for path generation and access
+/// control.
+model MediaAsset {
+  id               String        @id @default(uuid())
+  originalFilename String
+  storagePath      String        @unique
+  mimeType         String
+  fileSizeBytes    Int
+  category         MediaCategory
+  description      String?       @db.Text
+  keywords         String?       @db.Text
+  checksumSha256   String?
+  thumbnailPath    String?
+
+  uploaderId String
+  uploader   User     @relation("MediaUploader", fields: [uploaderId], references: [id])
+  uploadedAt DateTime @default(now())
+
+  status       RecordStatus @default(ACTIVE)
+  retentionNote String?
+
+  activityMedia      ActivityMedia[]
+  projectMedia       ProjectMedia[]
+  meetingAttachments MeetingAttachment[]
+  approval           MediaApproval?
+
+  @@index([category])
+  @@index([uploaderId])
+  @@index([uploadedAt])
+  @@map("media_assets")
+}
+
+model ActivityMedia {
+  id           String     @id @default(uuid())
+  activityId   String
+  activity     Activity   @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  mediaAssetId String
+  mediaAsset   MediaAsset @relation(fields: [mediaAssetId], references: [id], onDelete: Cascade)
+  addedAt      DateTime   @default(now())
+
+  @@unique([activityId, mediaAssetId])
+  @@map("activity_media")
+}
+
+model ProjectMedia {
+  id           String     @id @default(uuid())
+  projectId    String
+  project      Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  mediaAssetId String
+  mediaAsset   MediaAsset @relation(fields: [mediaAssetId], references: [id], onDelete: Cascade)
+  addedAt      DateTime   @default(now())
+
+  @@unique([projectId, mediaAssetId])
+  @@map("project_media")
+}
+
+/// One row per media asset that has ever been submitted for the public
+/// gallery. status=REVOKED means it was once APPROVED (and public) but
+/// access was withdrawn; the public gallery query must only ever select
+/// status=APPROVED.
+model MediaApproval {
+  id           String @id @default(uuid())
+  mediaAssetId String @unique
+  mediaAsset   MediaAsset @relation(fields: [mediaAssetId], references: [id], onDelete: Cascade)
+
+  submittedById String
+  submittedBy   User     @relation("ApprovalSubmitter", fields: [submittedById], references: [id])
+  submittedAt   DateTime @default(now())
+
+  reviewedById String?
+  reviewedBy   User?     @relation("ApprovalReviewer", fields: [reviewedById], references: [id])
+  reviewedAt   DateTime?
+
+  status          ApprovalStatus @default(PENDING)
+  publicCaption   String?        @db.Text
+  rejectionReason String?        @db.Text
+  revokedAt       DateTime?
+
+  @@index([status])
+  @@map("media_approvals")
+}
+
+// ---------------------------------------------------------------------------
+// Audit & notifications
+// ---------------------------------------------------------------------------
+
+/// Append-only. No update/delete path is exposed anywhere in the application
+/// layer — ordinary server actions must only ever INSERT here.
+model AuditLog {
+  id          String   @id @default(uuid())
+  actorId     String?
+  actor       User?    @relation(fields: [actorId], references: [id])
+  action      String
+  targetType  String
+  targetId    String?
+  metadata    Json?
+  beforeValue Json?
+  afterValue  Json?
+  ipAddress   String?
+  createdAt   DateTime @default(now())
+
+  @@index([actorId])
+  @@index([targetType, targetId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      NotificationType
+  title     String
+  body      String?          @db.Text
+  link      String?
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  @@index([userId, isRead])
+  @@map("notifications")
+}

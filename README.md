@@ -1,36 +1,57 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# BFDO Management System
 
-## Getting Started
+A centralized web application for BFDO to manage projects, activities, the
+digital archive (photos/documents), tasks, meetings, team members, and
+reporting — plus a public media gallery for approved content.
 
-First, run the development server:
+**Status**: early build-out. See `docs/project-status.md` for exactly what
+is implemented versus still pending, and what's blocked on credentials only
+you can provide.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## Stack
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Next.js (App Router, TypeScript strict) · Tailwind CSS + shadcn/ui · MySQL
+via Prisma ORM · custom session-based auth (bcrypt) · local-disk private
+file storage · React Hook Form + Zod · Recharts.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+This differs from a "default" Supabase/Postgres stack because the target
+host is Hostinger shared hosting with MySQL. See `docs/architecture.md` for
+the reasoning, in particular "Why not Supabase / why not Auth.js".
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Getting started (local development)
 
-## Learn More
+1. Install dependencies:
+   ```
+   npm install
+   ```
+2. Create a MySQL database (locally, e.g. via XAMPP/MySQL Workbench, or a
+   Hostinger-hosted one reachable from your machine).
+3. Copy `.env.example` to `.env` and fill in `DATABASE_URL` and the other
+   values (see comments in that file for what each one is for).
+4. Apply the schema:
+   ```
+   npx prisma migrate dev
+   ```
+5. Create the first System Administrator account:
+   ```
+   npm run create-admin
+   ```
+   (script added in Phase 2 — see `docs/project-status.md`)
+6. Run the dev server:
+   ```
+   npm run dev
+   ```
 
-To learn more about Next.js, take a look at the following resources:
+## Documentation
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- `docs/architecture.md` — system architecture and key decisions.
+- `docs/database-schema.md` — tables and relationships, in plain language.
+- `docs/permissions.md` — roles, permission matrix, and the hard rules every
+  server action must respect.
+- `docs/project-status.md` — what's done, what's pending, what's blocked.
+- `docs/deployment.md`, `docs/backup-recovery.md`, `docs/security.md`,
+  `docs/user-guide.md` — added as those phases complete.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Project structure
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+See `docs/architecture.md#folder-structure`.
