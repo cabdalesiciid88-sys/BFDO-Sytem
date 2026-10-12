@@ -5,11 +5,15 @@ place to check "is X actually done" rather than trusting chat history.
 
 Last updated: 2026-10-12.
 
-## Phase 1 is complete
+## Phases 1 & 2 are complete
 
-Scaffold, schema, folder structure, and core docs are done; lint, typecheck,
-and `next build` (standalone output) all pass cleanly on the bare app. See
-below for detail and for what's still blocked.
+Scaffold, schema, folder structure, core docs, and now real working
+authentication (login/logout/protected routes/role+project permission
+helpers) are done — verified both by `lint`/`tsc`/`next build` and by
+actually using it in a browser against a real local MySQL database. See
+below for detail and for what's still blocked. **Next session starts on
+Phase 3** (dashboard metrics, Projects, Activity Register, Tasks,
+Meetings & Decisions, Team management) — see the Phase 3 checklist below.
 
 ## Platform decision record
 
@@ -62,14 +66,43 @@ below for detail and for what's still blocked.
       Hostinger database is still pending real credentials — see
       "Blockers" below.
 
-## Phase 2 — Authentication & permissions
+## Phase 2 — Authentication & permissions (complete)
 
-- [ ] Custom session auth (signup is admin-only; no public self-registration
-      per spec — accounts are created/invited by an admin).
-- [ ] `lib/permissions` authorization helpers + tests.
-- [ ] Protected route layout (`app/(app)/layout.tsx`) redirecting
-      unauthenticated/deactivated users.
-- [ ] First-administrator bootstrap script (`npm run create-admin`).
+- [x] Custom session auth: bcrypt password hashing (`lib/auth/password.ts`),
+      random-token sessions hashed with SHA-256 in MySQL
+      (`lib/auth/session.ts`), httpOnly/secure/SameSite=Lax cookie. No public
+      self-registration — accounts are admin-created only (enforced simply
+      by there being no sign-up route).
+- [x] Login/logout server actions (`features/auth/actions.ts`) with generic
+      "invalid email or password" errors (no account-enumeration leak) and
+      a simple in-memory rate limiter on login (`lib/auth/rate-limit.ts`).
+- [x] `lib/permissions`: role-based capability sets (`roles.ts`),
+      project-membership checks with org-wide bypass for Admin/Leadership
+      (`project-access.ts`), and a `ForbiddenError` convention for the
+      route layer to turn into `notFound()`.
+- [x] `lib/audit/log.ts` — the one and only way anything writes to
+      `audit_logs` (append-only by construction). Full audit event wiring
+      happens feature-by-feature starting Phase 3/5.
+- [x] Protected route layout (`app/(app)/layout.tsx`) — calls
+      `requireUser()`, which redirects to `/login` for anyone without a
+      valid, non-expired, ACTIVE-status session. Renders the sidebar/topbar
+      app shell (`components/app-shell/`) with a role-filtered nav
+      (`lib/nav/main-nav.ts` — only lists routes that actually exist, by
+      design, so there are no dead links).
+- [x] First-administrator bootstrap script (`npm run create-admin`, reads
+      `BOOTSTRAP_ADMIN_EMAIL`/`BOOTSTRAP_ADMIN_PASSWORD` from `.env`).
+- [x] **Manually verified end-to-end in a real browser** against the local
+      Docker MySQL database: login with wrong/right credentials, protected
+      route redirect when logged out, sidebar/topbar render with real user
+      data, sign-out, and confirmed via direct DB query that sign-out
+      actually deletes the session row (not just the cookie). Caught and
+      fixed one real runtime bug this way (a Base UI `Menu.GroupLabel`
+      needed a `<Menu.Group>` wrapper — `components/ui/dropdown-menu.tsx`
+      pattern) that `tsc`/`eslint`/`next build` all missed.
+- [ ] Not yet built: password reset flow, and the "deactivation revokes all
+      sessions" transactional helper (straightforward given
+      `destroyAllSessionsForUser()` already exists in `session.ts` — wiring
+      it into an actual admin action is Phase 3's User Management work).
 
 ## Phase 3 — Core organizational modules
 
