@@ -7,6 +7,8 @@ import { requireUser } from "@/lib/auth/current-user";
 import { hashPassword } from "@/lib/auth/password";
 import { ForbiddenError } from "@/lib/permissions/errors";
 import { CAN_MANAGE_USERS } from "@/lib/permissions/roles";
+import { requireNotSelfDemotion } from "@/lib/permissions/user-access";
+import { deactivateUser, reactivateUser } from "@/lib/users/lifecycle";
 import { recordAuditLog } from "@/lib/audit/log";
 import { createUserSchema, resetPasswordSchema, updateUserSchema } from "@/features/team/schema";
 
@@ -80,10 +82,11 @@ export async function updateTeamMember(
     return { error: parsed.error.issues[0]?.message ?? "Check the form for errors." };
   }
 
-  // Guard against an admin locking the org out by demoting themselves —
-  // not an explicit spec requirement, but a cheap, obvious footgun to avoid.
-  if (userId === user.id && parsed.data.role !== "SYSTEM_ADMIN") {
-    return { error: "You cannot change your own role away from System Administrator." };
+  try {
+    requireNotSelfDemotion(user.id, userId, parsed.data.role);
+  } catch (err) {
+    if (err instanceof ForbiddenError) return { error: err.message };
+    throw err;
   }
 
   const existing = await prisma.user.findUnique({ where: { id: userId } });
@@ -121,14 +124,7 @@ export async function deactivateTeamMember(userId: string): Promise<void> {
     throw new Error("You cannot deactivate your own account.");
   }
 
-  // Mirrors destroyAllSessionsForUser() (lib/auth/session.ts) but run inside
-  // the same transaction as the status flip, so access ends immediately and
-  // atomically (docs/permissions.md hard rule 3) — Prisma transactions
-  // require every operation to run on the same `tx` client.
-  await prisma.$transaction(async (tx) => {
-    await tx.user.update({ where: { id: userId }, data: { status: "DEACTIVATED" } });
-    await tx.session.deleteMany({ where: { userId } });
-  });
+  await deactivateUser(userId);
 
   await recordAuditLog({
     actorId: user.id,
@@ -147,7 +143,7 @@ export async function reactivateTeamMember(userId: string): Promise<void> {
     throw new ForbiddenError("You do not have permission to manage users.");
   }
 
-  await prisma.user.update({ where: { id: userId }, data: { status: "ACTIVE" } });
+  await reactivateUser(userId);
 
   await recordAuditLog({
     actorId: user.id,

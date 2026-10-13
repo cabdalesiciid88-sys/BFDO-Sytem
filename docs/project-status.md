@@ -3,18 +3,22 @@
 Living checklist. Update this file as work completes — this is the single
 place to check "is X actually done" rather than trusting chat history.
 
-Last updated: 2026-10-13.
+Last updated: 2026-10-14.
 
-## Phases 1-5 are complete
+## Phases 1-6 are complete
 
 Scaffold, schema, folder structure, core docs, real working authentication,
 the core organizational modules (dashboard metrics, Projects, Activity
 Register, Tasks, Meetings & Decisions, Team management), the Digital
-Archive & Public Gallery, and now Reporting & administration are done —
-verified both by `lint`/`tsc`/`next build` and by actually using every
-module in a browser against a real local MySQL database. See below for
-detail and for what's still blocked. **Next session starts on Phase 6**
-(Reliability & deployment) — see the Phase 6 checklist below.
+Archive & Public Gallery, Reporting & administration, and now Reliability &
+deployment (automated test suites, a verified backup/recovery drill,
+security headers, and the full doc set) are all done — verified by
+`lint`/`tsc`/`next build`, by automated tests (Vitest + Playwright), and by
+actually using every module in a browser against a real local MySQL
+database. See below for detail and for what's still blocked. This repo is
+at **feature-complete, pending only external blockers** (production
+database credentials, confirmed Hostinger Node version, SMTP) — see
+"Blockers" below.
 
 ## Platform decision record
 
@@ -252,14 +256,100 @@ testing UI changes on this project:
   deliberately just the fields that have real wired-up behavior today
   (see `docs/database-schema.md`).
 
-## Phase 6 — Reliability & deployment
+## Phase 6 — Reliability & deployment (complete)
 
-- [ ] Unit/integration/authorization/E2E tests.
-- [ ] Backup & recovery procedure documented and actually tested.
-- [ ] `docs/deployment.md`, `docs/security.md`, `docs/user-guide.md`,
-      `docs/backup-recovery.md` completed.
-- [ ] Lint, typecheck, build all passing.
-- [ ] Final readiness review against the spec's Definition of Done.
+- [x] Unit/integration/authorization/E2E tests — Vitest (`tests/`) against
+      a dedicated test database, Playwright (`e2e/`) against a real running
+      dev server. See `docs/testing.md` for the full picture, including the
+      honest "not covered yet" list (most feature CRUD paths still rely on
+      manual browser verification, by design — not silently skipped).
+      43 Vitest tests + 6 Playwright tests, all passing as of this writing.
+    - `tests/permissions/roles.test.ts` — every capability constant in
+      `lib/permissions/roles.ts` against the full `docs/permissions.md`
+      matrix, exact-set assertions (over-grant is a bug too).
+    - `tests/auth/` — session lifecycle + password hashing, against the
+      test database.
+    - `tests/authorization/hard-rule-{1-6}-*.test.ts` — one file per hard
+      rule in `docs/permissions.md`, by name.
+    - `e2e/golden-path.spec.ts`, `e2e/admin-route-protection.spec.ts` —
+      login/logout/wrong-password and admin-only-route 404 enforcement in
+      a real browser.
+- [x] Backup & recovery procedure documented **and actually tested**
+      (`docs/backup-recovery.md`) — `scripts/backup.ts`/`restore.ts`, run
+      for real: backed up the live dev database + file storage, restored
+      both into the separate test database/a scratch path, verified row
+      counts and file checksums matched exactly. This caught and fixed a
+      real bug in the restore script before it ever mattered (see that
+      doc's "restore drill" section for what broke and why).
+- [x] `docs/deployment.md`, `docs/security.md`, `docs/user-guide.md`,
+      `docs/backup-recovery.md`, `docs/testing.md` all written/updated.
+- [x] Security headers added (`next.config.ts`): CSP, HSTS, X-Frame-Options,
+      X-Content-Type-Options, Referrer-Policy, Permissions-Policy,
+      `X-Powered-By` disabled. Verified in both a real browser (dev mode,
+      console clean) and against a built-and-run standalone production
+      server (confirmed `'unsafe-eval'` — needed only for Next's dev-mode
+      debugging — is absent from the production response header). See
+      `docs/security.md` "Security headers" for what's deliberately not
+      maximal yet (no nonce-based CSP).
+- [x] Lint, typecheck, build all passing (reverified after every change in
+      this phase, not just once at the end).
+- [x] Final readiness review against the spec's Definition of Done — see
+      below.
+
+### Bugs found and fixed during Phase 6 verification
+
+Consistent with every prior phase, real defects surfaced from actually
+running things, not from review:
+
+1. **`scripts/restore.ts`'s file-storage restore silently targeted the
+   wrong directory.** A tar archive's internal top-level folder name is
+   whatever `STORAGE_ROOT` was named *at backup time* — extracting
+   directly into the restore target's parent directory reproduced that
+   *old* name there instead of the requested `STORAGE_ROOT`, and on this
+   first run that old name happened to collide with the live dev
+   `.local-storage` directory (harmless only because the content was
+   identical). Fixed by extracting into a throwaway staging directory
+   first, then renaming the one extracted folder to the actual target —
+   found and fixed by actually running a restore, not by inspection.
+2. **GNU tar on Windows misreads an absolute `C:\...` path as a
+   `user@host:path` remote-tar spec** (the drive-letter colon) — both
+   backup and restore scripts now pass `--force-local`.
+3. **Dashboard/report status-bar charts were nearly invisible in light
+   mode.** `components/charts/status-bar-chart.tsx` filled every
+   single-series bar with `--chart-1`, the grayscale palette's *lightest*
+   step (`oklch(0.87 0 0)`) — against a near-white card background that's
+   a ~13-point lightness gap, well under WCAG's 3:1 minimum for graphical
+   objects. Found while screenshot-diffing during the CSP rollout (a
+   seemingly-correct DOM/fill value made it easy to misdiagnose as a CSP
+   bug at first — confirmed it wasn't by checking computed styles
+   directly). Fixed by switching to `--chart-3` (mid-gray), clearly
+   visible against both light and dark card backgrounds.
+4. Confirmed `.env*` wildcard already covered the new `.env.test`, but
+   added explicit `.gitignore` entries for `/backups/`, `/test-results/`,
+   `/playwright-report/`, and `/.local-storage-test/` — none of these
+   existed before this phase and none should ever be committed.
+
+### Final readiness review
+
+Against this project's own tracked Definition of Done (`docs/permissions.md`
+matrix + `docs/project-status.md` phase checklists — the closest available
+proxy to "the spec" inside this repo):
+
+- All 6 phases complete, each independently verified by `lint`/`tsc`/
+  `next build` **and** real browser use (Phases 1-5) or automated tests
+  exercising the same (Phase 6).
+- Every hard rule in `docs/permissions.md` has a named regression test.
+- Every `features/*/actions.ts` sensitive action is audit-logged (1:1
+  ratio of exported actions to `recordAuditLog` calls, confirmed Phase 5).
+- Backup/recovery isn't just documented — it was run for real, against
+  real data, and the one bug it caught was fixed before being trusted.
+- **Still genuinely open**, honestly: no CI pipeline (deliberate — see
+  `docs/security.md`), no nonce-based CSP, no automated backup-verification
+  schedule, most feature CRUD paths still rely on manual testing rather
+  than automated regression coverage, and the three items in "Blockers"
+  below (production database, confirmed Hostinger Node version, SMTP)
+  are genuinely external dependencies no amount of further local work
+  resolves.
 
 ## Local development database
 
@@ -285,6 +375,19 @@ because this machine already runs an unrelated project's MySQL container
 on the standard port — the two are fully isolated from each other.
 
 These are throwaway local credentials, not used anywhere near production.
+
+A **second database**, `bfdo_management_test`, lives on the same container
+— used exclusively by the automated test suites (`docs/testing.md`), never
+touched by manual browser verification. Create it once with:
+
+```sh
+docker exec bfdo-mysql-dev mysql -u root -pbfdo_dev_root_pw -e \
+  "CREATE DATABASE IF NOT EXISTS bfdo_management_test; GRANT ALL PRIVILEGES ON bfdo_management_test.* TO 'bfdo_app'@'%'; FLUSH PRIVILEGES;"
+DATABASE_URL="mysql://bfdo_app:bfdo_dev_app_pw@localhost:3307/bfdo_management_test" npx prisma migrate deploy
+```
+
+Re-run `prisma migrate deploy` against it after any new migration — it
+doesn't share schema state with `bfdo_management` automatically.
 
 ## Blockers / things only the user can provide
 

@@ -39,7 +39,17 @@ yarn-error.log*
 # local private file storage (digital archive uploads) — never committed
 /storage/
 /.local-storage/
+/.local-storage-test/
 /.tmp-test-uploads/
+
+# test output
+/test-results/
+/playwright-report/
+/blob-report/
+
+# backup/restore drill output — never committed, may contain real data
+/backups/
+/backups-drill/
 
 # typescript
 *.tsbuildinfo

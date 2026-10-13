@@ -2,8 +2,9 @@
 
 This document tracks the security model as implemented, including the
 deliberate tradeoffs made by moving off the originally-specified Supabase
-stack onto Hostinger + MySQL. It will keep growing through Phase 6; treat
-anything not yet listed under "Implemented" as not yet built.
+stack onto Hostinger + MySQL. Treat anything not yet listed under
+"Implemented" (or explicitly called out in "Known gaps" below) as not yet
+built.
 
 ## Authentication
 
@@ -32,9 +33,12 @@ equivalent, so on this stack:
   `features/<name>/actions.ts`") exists: it keeps every write/read path in
   one reviewable place per feature, so "does this feature check
   permissions?" is answerable by reading one short file.
-- `tests/authorization` exists specifically to catch regressions here —
-  treat a failing authorization test as a release blocker, not a flaky test
-  to skip.
+- `tests/authorization/hard-rule-{1-6}-*.test.ts` exists specifically to
+  catch regressions here, one file per hard rule listed above by number —
+  treat a failing authorization test as a release blocker, not a flaky
+  test to skip. See `docs/testing.md` for how these run (against a
+  dedicated test database, never the dev database) and what they don't
+  cover yet.
 
 ## File access
 
@@ -68,6 +72,34 @@ equivalent, so on this stack:
   sensitive and are scoped to a single application database user on
   Hostinger, not a shared admin account.
 
+## Security headers
+
+Set in `next.config.ts`'s `headers()` on every route: `X-Content-Type-Options:
+nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy:
+strict-origin-when-cross-origin`, a restrictive `Permissions-Policy`
+(camera/microphone/geolocation all denied), `Strict-Transport-Security`
+(safe to always send — browsers only honor it over HTTPS, and this app's
+only real deployment path terminates TLS in front of it, see
+`docs/architecture.md`), and a `Content-Security-Policy`. `X-Powered-By` is
+disabled (`poweredByHeader: false`) so responses don't advertise the
+framework.
+
+The CSP is **not** nonce-based — it uses `'unsafe-inline'` for both
+`script-src` and `style-src` because Next.js's own hydration bootstrap
+script and this project's Tailwind/Base UI styling both rely on inline
+script/style, and wiring per-request nonces through middleware into every
+`<script>`/`<style>` tag was out of scope for this pass (tracked below as a
+known gap). It still meaningfully restricts the two things CSP is most
+commonly bypassed through: `object-src 'none'` (no plugin embeds) and no
+third-party script/style origins at all (`default-src 'self'`) — an
+injected `<script src="https://evil.example/x.js">` is blocked even though
+an injected inline `<script>…</script>` isn't. `script-src` additionally
+allows `'unsafe-eval'` **only when `NODE_ENV !== "production"`** — Next.js
+dev mode's React Refresh tooling legitimately needs `eval()` for
+cross-module stack reconstruction; production never uses it (verified
+directly: built and ran the standalone server with `NODE_ENV=production`
+and confirmed `'unsafe-eval'` is absent from the response header).
+
 ## Audit logging
 
 - `audit_logs` is append-only by construction — no code path in this
@@ -96,16 +128,30 @@ equivalent, so on this stack:
   driver-adapter connection model this project relies on — not worth the
   regression for a dev-time-only exposure. Re-evaluate when Prisma ships a
   7.x patch that updates these transitive deps.
+- `npm audit --omit=dev` confirms production dependencies are unaffected
+  by anything beyond the two already covered above. The full `npm audit`
+  (including `devDependencies`) additionally flags a stack-exhaustion
+  issue in `braces` — transitively via the `shadcn` CLI tool
+  (`shadcn → fast-glob → micromatch → braces`, confirmed with `npm ls
+  braces`), predating Phase 6. Same posture: dev-tooling-only, never
+  reachable from the deployed application.
 
 ## Known gaps / not yet implemented
 
 (Tracked here instead of silently deferred — see `docs/project-status.md`
 for phase-by-phase status.)
 
-- Rate limiting on login/password-reset endpoints.
-- Security headers (CSP, HSTS, etc.) at the Next.js response layer.
+- Login is rate-limited (`lib/auth/rate-limit.ts`, 10 attempts/15min per
+  IP+email) — there is no password-reset endpoint to rate-limit yet
+  because that feature itself doesn't exist (see Phase 2 status in
+  `docs/project-status.md`); revisit this line once it does.
+- CSP is `'unsafe-inline'`-based, not nonce-based (see "Security headers"
+  above) — meaningful but not maximal XSS mitigation. Wiring per-request
+  nonces through middleware would close this gap if it's ever worth the
+  added complexity.
 - Dependency vulnerability scanning as part of a CI pipeline (no CI is
   configured yet — this is a single-developer build against a shared host,
   not a team repo with GitHub Actions configured).
-- Automated backup verification/alerting (see `docs/backup-recovery.md`,
-  added in Phase 6).
+- Automated backup verification/alerting — the Phase 6 restore drill
+  (`docs/backup-recovery.md`) was run manually once, not wired into a
+  recurring scheduled check.

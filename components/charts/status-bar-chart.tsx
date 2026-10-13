@@ -49,7 +49,11 @@ export function StatusBarChart({ data }: { data: StatusBarDatum[] }) {
             color: "var(--popover-foreground)",
           }}
         />
-        <Bar dataKey="value" fill="var(--chart-1)" radius={[0, 4, 4, 0]} maxBarSize={22}>
+        {/* --chart-1 is the palette's lightest step (oklch L 0.87) — nearly
+            invisible against a white card in light mode. --chart-3 is a
+            mid-gray with real contrast against both the light and dark card
+            background, still within the single-hue grayscale palette. */}
+        <Bar dataKey="value" fill="var(--chart-3)" radius={[0, 4, 4, 0]} maxBarSize={22}>
           <LabelList dataKey="value" position="right" style={{ fill: "var(--foreground)", fontSize: 12 }} />
         </Bar>
       </BarChart>
