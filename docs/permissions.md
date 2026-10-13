@@ -85,3 +85,6 @@ Legend: ✅ full, 🟡 own/assigned-project only, ❌ none.
 
 This matrix is implemented incrementally — see `docs/project-status.md` for
 what's enforced in code today versus still pending.
+
+"Export CSV/PDF" is implemented as CSV only as of Phase 5 (`/api/reports/export`)
+— PDF generation was not part of the Phase 5 scope and isn't built yet.

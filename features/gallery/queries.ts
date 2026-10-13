@@ -1,6 +1,20 @@
 import "server-only";
 import { prisma } from "@/lib/db/client";
 
+/**
+ * Plain read, no upsert — called on every anonymous public-gallery page
+ * view and byte-serving request, so it must stay a single cheap SELECT.
+ * Defaults to enabled if the settings row doesn't exist yet (same default
+ * as the schema), rather than writing it into existence on a public path.
+ */
+export async function isPublicGalleryEnabled(): Promise<boolean> {
+  const settings = await prisma.orgSettings.findUnique({
+    where: { id: "singleton" },
+    select: { publicGalleryEnabled: true },
+  });
+  return settings?.publicGalleryEnabled ?? true;
+}
+
 export async function listPendingApprovals() {
   return prisma.mediaApproval.findMany({
     where: { status: "PENDING" },

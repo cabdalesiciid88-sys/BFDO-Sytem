@@ -7,6 +7,7 @@ import { verifyPassword } from "@/lib/auth/password";
 import { createSession, destroySessionByToken, SESSION_COOKIE_NAME } from "@/lib/auth/session";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { isRateLimited, LOGIN_RATE_LIMIT } from "@/lib/auth/rate-limit";
+import { recordAuditLog } from "@/lib/audit/log";
 import { loginSchema } from "@/features/auth/schema";
 
 export type LoginState = { error: string } | null;
@@ -39,11 +40,29 @@ export async function login(_prevState: LoginState, formData: FormData): Promise
   // is wrong, or the account is deactivated/invited-but-not-activated —
   // never reveal which, to avoid account enumeration.
   const genericError = { error: "Invalid email or password." };
+  const attemptedEmail = parsed.data.email;
 
-  if (!user || user.status !== "ACTIVE") return genericError;
+  async function logFailure() {
+    await recordAuditLog({
+      actorId: null,
+      action: "auth.login_failed",
+      targetType: "User",
+      targetId: user?.id ?? null,
+      metadata: { email: attemptedEmail },
+      ipAddress: ip,
+    });
+  }
+
+  if (!user || user.status !== "ACTIVE") {
+    await logFailure();
+    return genericError;
+  }
 
   const passwordOk = await verifyPassword(parsed.data.password, user.passwordHash);
-  if (!passwordOk) return genericError;
+  if (!passwordOk) {
+    await logFailure();
+    return genericError;
+  }
 
   const h = await headers();
   const { rawToken, expiresAt } = await createSession(user.id, {
@@ -62,6 +81,14 @@ export async function login(_prevState: LoginState, formData: FormData): Promise
 
   await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
 
+  await recordAuditLog({
+    actorId: user.id,
+    action: "auth.login",
+    targetType: "User",
+    targetId: user.id,
+    ipAddress: ip,
+  });
+
   redirect("/dashboard");
 }
 
@@ -69,8 +96,17 @@ export async function logout(): Promise<void> {
   const cookieStore = await cookies();
   const rawToken = cookieStore.get(SESSION_COOKIE_NAME)?.value;
   if (rawToken) {
+    const user = await getCurrentUser();
     await destroySessionByToken(rawToken);
     cookieStore.delete(SESSION_COOKIE_NAME);
+    if (user) {
+      await recordAuditLog({
+        actorId: user.id,
+        action: "auth.logout",
+        targetType: "User",
+        targetId: user.id,
+      });
+    }
   }
   redirect("/login");
 }

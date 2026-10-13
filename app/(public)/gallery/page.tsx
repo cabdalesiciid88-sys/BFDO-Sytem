@@ -1,5 +1,5 @@
 import { FileText } from "lucide-react";
-import { listPublicGalleryItems } from "@/features/gallery/queries";
+import { isPublicGalleryEnabled, listPublicGalleryItems } from "@/features/gallery/queries";
 
 export const metadata = {
   title: "Public Gallery — BFDO Management System",
@@ -11,7 +11,8 @@ export const metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function PublicGalleryPage() {
-  const items = await listPublicGalleryItems();
+  const enabled = await isPublicGalleryEnabled();
+  const items = enabled ? await listPublicGalleryItems() : [];
 
   return (
     <div className="mx-auto max-w-5xl space-y-4">
@@ -22,7 +23,11 @@ export default async function PublicGalleryPage() {
         </p>
       </div>
 
-      {items.length === 0 ? (
+      {!enabled ? (
+        <p className="text-sm text-muted-foreground">
+          The public gallery is temporarily unavailable.
+        </p>
+      ) : items.length === 0 ? (
         <p className="text-sm text-muted-foreground">Nothing has been published yet.</p>
       ) : (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">

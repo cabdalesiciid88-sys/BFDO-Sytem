@@ -5,22 +5,16 @@ place to check "is X actually done" rather than trusting chat history.
 
 Last updated: 2026-10-13.
 
-## Phases 1-4 are complete
+## Phases 1-5 are complete
 
 Scaffold, schema, folder structure, core docs, real working authentication,
 the core organizational modules (dashboard metrics, Projects, Activity
-Register, Tasks, Meetings & Decisions, Team management), and now the
-Digital Archive & Public Gallery are done — verified both by
-`lint`/`tsc`/`next build` and by actually using every module in a browser
-against a real local MySQL database (created a project, added a member,
-recorded an activity, created and updated a task, recorded a meeting with
-an embedded decision, added a team member, confirmed the dashboard reflects
-all of it live, uploaded a photo to the archive, confirmed thumbnail
-generation, submitted it for the public gallery, approved it as admin,
-confirmed it appears on the unauthenticated `/gallery` page live, then
-revoked it and confirmed it disappears live). See below for detail and for
-what's still blocked. **Next session starts on Phase 5** (Reporting &
-administration) — see the Phase 5 checklist below.
+Register, Tasks, Meetings & Decisions, Team management), the Digital
+Archive & Public Gallery, and now Reporting & administration are done —
+verified both by `lint`/`tsc`/`next build` and by actually using every
+module in a browser against a real local MySQL database. See below for
+detail and for what's still blocked. **Next session starts on Phase 6**
+(Reliability & deployment) — see the Phase 6 checklist below.
 
 ## Platform decision record
 
@@ -210,13 +204,53 @@ testing UI changes on this project:
    otherwise force dynamic rendering implicitly via `cookies()`) needs the
    same treatment.
 
-## Phase 5 — Reporting & administration
+## Phase 5 — Reporting & administration (complete)
 
-- [ ] Reports (activities by date/project/category, task status, archive
-      uploads, gallery approvals).
-- [ ] CSV export, enforcing the same permission checks as the source data.
-- [ ] Audit logging wired into every sensitive action.
-- [ ] System settings page.
+- [x] Reports (activities by date/project/category, task status, archive
+      uploads, gallery approvals) — `/reports`, `features/reports/`. Each
+      report type reuses the exact same permission-scoped query shape as
+      its source feature (e.g. the activities report mirrors
+      `listActivities`'s org-wide-vs-assigned-projects scoping). The
+      Gallery Approvals report is additionally narrowed to
+      `CAN_VIEW_ORG_WIDE` (Admin/Leadership only), since that workflow
+      itself is admin/leadership-only — a Project Manager can run the other
+      three reports but not this one.
+- [x] CSV export (`/api/reports/export`) — a GET route handler that calls
+      the *same* scoped query functions the `/reports` page renders from,
+      not a separate less-guarded path. Every export is also recorded as a
+      `reports` row (history, per `docs/database-schema.md`) and an
+      `audit_logs` entry (`report.export`).
+- [x] Audit logging wired into every sensitive action — every
+      `features/*/actions.ts` across Phases 2-5 now has a 1:1 ratio of
+      exported server actions to `recordAuditLog` calls, including
+      `features/auth/actions.ts` (`auth.login`, `auth.login_failed`,
+      `auth.logout`), which had none before this phase.
+- [x] Audit log viewer (`/audit`, admin-only, `features/audit/`) — filter
+      by actor/action/target type/date range, paginated.
+- [x] System settings page (`/settings`, admin-only, `features/settings/`)
+      — organization name, support email, and a **public gallery kill
+      switch** (`publicGalleryEnabled`) that's wired into real behavior:
+      when off, `/gallery` shows "temporarily unavailable" and both public
+      byte-serving routes (`/api/public/media/[id]` and its `/thumbnail`
+      variant) 404, re-checked per request like every other access-control
+      check in the archive/gallery system — not just hidden in the UI.
+- [x] **Manually verified end-to-end in a real browser**: ran all four
+      report types with real data, downloaded and inspected two CSV
+      exports (gallery approvals, archive uploads), confirmed the
+      `report.export` audit entry and `reports` row appeared, filtered the
+      audit log viewer, toggled the public-gallery kill switch off and
+      confirmed `/gallery` and the public media/thumbnail routes all
+      404/show-unavailable, then toggled it back on and confirmed the
+      gallery was immediately live again — all via `revalidatePath`, no
+      stale cache.
+
+### Schema addition
+
+- **`org_settings`** — singleton row (fixed id `"singleton"`), created on
+  first read by `features/settings/queries.ts`'s `getOrgSettings()` rather
+  than requiring a seed step. Not modeled as a generic key-value table —
+  deliberately just the fields that have real wired-up behavior today
+  (see `docs/database-schema.md`).
 
 ## Phase 6 — Reliability & deployment
 

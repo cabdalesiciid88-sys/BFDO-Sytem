@@ -86,6 +86,18 @@ mutation history matters.
 - **notifications** — in-app notifications (task assigned, media submitted
   for review, etc.), per user.
 
+## Administration
+
+- **org_settings** — a singleton row (fixed primary key `"singleton"`)
+  holding org-wide configuration an admin can change at runtime:
+  organization name, support email, and `publicGalleryEnabled` (a kill
+  switch — when false, the public gallery page and its byte-serving routes
+  refuse to show anything, even already-approved items). Created on first
+  read rather than via a seed step. Not a generic key-value settings table
+  — fields are added here only once they have real wired-up behavior
+  somewhere in the app, to avoid a settings page full of decorative
+  options.
+
 ## Deliberately not modeled (yet)
 
 - Video-specific transcoding/streaming metadata — v1 supports photo and

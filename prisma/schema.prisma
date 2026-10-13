@@ -139,6 +139,7 @@ model User {
   generatedReports       Report[]               @relation("ReportGeneratedBy")
   auditLogs              AuditLog[]
   notifications          Notification[]
+  updatedOrgSettings     OrgSettings[]
 
   @@index([role])
   @@index([status])
@@ -547,6 +548,23 @@ model AuditLog {
   @@index([targetType, targetId])
   @@index([createdAt])
   @@map("audit_logs")
+}
+
+/// Singleton row (fixed id) holding org-wide configuration an admin can
+/// change at runtime. Read with lib/db/client via features/settings/queries.ts
+/// getOrgSettings(), which creates the default row on first read if it
+/// doesn't exist yet rather than requiring a seed step.
+model OrgSettings {
+  id                   String  @id @default("singleton")
+  organizationName     String  @default("BFDO")
+  supportEmail         String?
+  publicGalleryEnabled Boolean @default(true)
+
+  updatedById String?
+  updatedBy   User?    @relation(fields: [updatedById], references: [id])
+  updatedAt   DateTime @updatedAt
+
+  @@map("org_settings")
 }
 
 model Notification {

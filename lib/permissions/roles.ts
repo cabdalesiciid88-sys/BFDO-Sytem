@@ -69,3 +69,17 @@ export const CAN_VIEW_ORG_WIDE: ReadonlySet<Role> = new Set([
   "SYSTEM_ADMIN",
   "LEADERSHIP",
 ]);
+
+/** "View reports" / "Export CSV/PDF" in docs/permissions.md — excludes
+ *  TEAM_MEMBER. PM/Coordinator are further scoped to their own/assigned
+ *  projects by features/reports/queries.ts, same pattern as activity/task
+ *  listing. The Gallery Approvals report is additionally narrowed to
+ *  CAN_VIEW_ORG_WIDE only, since that workflow itself is admin/leadership-only. */
+export const CAN_VIEW_REPORTS: ReadonlySet<Role> = new Set([
+  "SYSTEM_ADMIN",
+  "LEADERSHIP",
+  "PROJECT_MANAGER",
+  "COORDINATOR",
+]);
+
+export const CAN_MANAGE_SETTINGS: ReadonlySet<Role> = new Set(["SYSTEM_ADMIN"]);

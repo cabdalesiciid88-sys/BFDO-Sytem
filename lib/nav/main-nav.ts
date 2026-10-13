@@ -1,13 +1,22 @@
 import type { Role } from "@prisma/client";
-import { CAN_MANAGE_USERS, CAN_REVIEW_PUBLIC_MEDIA } from "@/lib/permissions/roles";
+import {
+  CAN_MANAGE_SETTINGS,
+  CAN_MANAGE_USERS,
+  CAN_REVIEW_PUBLIC_MEDIA,
+  CAN_VIEW_AUDIT_LOGS,
+  CAN_VIEW_REPORTS,
+} from "@/lib/permissions/roles";
 import {
   Archive,
   BadgeCheck,
   CalendarClock,
   CheckSquare,
+  FileText,
   FolderKanban,
   Gavel,
   LayoutDashboard,
+  ScrollText,
+  Settings,
   UserCog,
   Users,
   type LucideIcon,
@@ -41,7 +50,10 @@ export const MAIN_NAV: NavItem[] = [
     icon: BadgeCheck,
     allowedRoles: CAN_REVIEW_PUBLIC_MEDIA,
   },
+  { label: "Reports", href: "/reports", icon: FileText, allowedRoles: CAN_VIEW_REPORTS },
   { label: "Team", href: "/team", icon: UserCog, allowedRoles: CAN_MANAGE_USERS },
+  { label: "Audit Logs", href: "/audit", icon: ScrollText, allowedRoles: CAN_VIEW_AUDIT_LOGS },
+  { label: "Settings", href: "/settings", icon: Settings, allowedRoles: CAN_MANAGE_SETTINGS },
 ];
 
 export function visibleNavItems(items: NavItem[], role: Role): NavItem[] {
