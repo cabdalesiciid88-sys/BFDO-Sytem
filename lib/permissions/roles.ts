@@ -41,6 +41,30 @@ export const CAN_CREATE_PROJECT: ReadonlySet<Role> = new Set([
   "PROJECT_MANAGER",
 ]);
 
+/** Global roles allowed to create an activity (further narrowed per-project
+ *  by lib/permissions/activity-access.ts — membership on the target project
+ *  is also required for everyone except SYSTEM_ADMIN). */
+export const CAN_CREATE_ACTIVITY: ReadonlySet<Role> = new Set([
+  "SYSTEM_ADMIN",
+  "PROJECT_MANAGER",
+  "COORDINATOR",
+]);
+
+/** Global roles allowed to create/assign a task, further narrowed per-project
+ *  by lib/permissions/task-access.ts. */
+export const CAN_CREATE_TASK: ReadonlySet<Role> = new Set([
+  "SYSTEM_ADMIN",
+  "PROJECT_MANAGER",
+  "COORDINATOR",
+]);
+
+/** "Record meetings/decisions" in docs/permissions.md — covers both Meeting and Decision rows. */
+export const CAN_RECORD_MEETINGS: ReadonlySet<Role> = new Set([
+  "SYSTEM_ADMIN",
+  "PROJECT_MANAGER",
+  "COORDINATOR",
+]);
+
 export const CAN_VIEW_ORG_WIDE: ReadonlySet<Role> = new Set([
   "SYSTEM_ADMIN",
   "LEADERSHIP",

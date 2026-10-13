@@ -3,17 +3,24 @@
 Living checklist. Update this file as work completes — this is the single
 place to check "is X actually done" rather than trusting chat history.
 
-Last updated: 2026-10-12.
+Last updated: 2026-10-13.
 
-## Phases 1 & 2 are complete
+## Phases 1-4 are complete
 
-Scaffold, schema, folder structure, core docs, and now real working
-authentication (login/logout/protected routes/role+project permission
-helpers) are done — verified both by `lint`/`tsc`/`next build` and by
-actually using it in a browser against a real local MySQL database. See
-below for detail and for what's still blocked. **Next session starts on
-Phase 3** (dashboard metrics, Projects, Activity Register, Tasks,
-Meetings & Decisions, Team management) — see the Phase 3 checklist below.
+Scaffold, schema, folder structure, core docs, real working authentication,
+the core organizational modules (dashboard metrics, Projects, Activity
+Register, Tasks, Meetings & Decisions, Team management), and now the
+Digital Archive & Public Gallery are done — verified both by
+`lint`/`tsc`/`next build` and by actually using every module in a browser
+against a real local MySQL database (created a project, added a member,
+recorded an activity, created and updated a task, recorded a meeting with
+an embedded decision, added a team member, confirmed the dashboard reflects
+all of it live, uploaded a photo to the archive, confirmed thumbnail
+generation, submitted it for the public gallery, approved it as admin,
+confirmed it appears on the unauthenticated `/gallery` page live, then
+revoked it and confirmed it disappears live). See below for detail and for
+what's still blocked. **Next session starts on Phase 5** (Reporting &
+administration) — see the Phase 5 checklist below.
 
 ## Platform decision record
 
@@ -104,22 +111,104 @@ Meetings & Decisions, Team management) — see the Phase 3 checklist below.
       `destroyAllSessionsForUser()` already exists in `session.ts` — wiring
       it into an actual admin action is Phase 3's User Management work).
 
-## Phase 3 — Core organizational modules
+## Phase 3 — Core organizational modules (complete)
 
-- [ ] Dashboard (real metrics, permission-aware).
-- [ ] Project management (CRUD, search/filter, status, archiving).
-- [ ] Activity Register (CRUD, search/filter, timeline).
-- [ ] Tasks module.
-- [ ] Meetings & Decisions module.
-- [ ] Team management (admin).
+- [x] Dashboard (real metrics, permission-aware org-wide vs. assigned-only
+      scoping; stat tiles + Projects/Tasks status bar charts via Recharts
+      using the app's existing grayscale `--chart-*` theme tokens, not an
+      introduced color palette).
+- [x] Project management (CRUD, search/filter, status, archiving, member
+      management with role-in-project).
+- [x] Activity Register (CRUD, search/filter, timeline view; org-wide
+      activities are admin-only, project activities require membership).
+- [x] Tasks module (CRUD, assignment, priority, due date, status updates —
+      a separate lighter "update my assigned task's status" action from the
+      full manage/reassign action, per the permission matrix).
+- [x] Meetings & Decisions module (meetings with participants; decisions
+      creatable standalone or inline from a meeting, inheriting its
+      project).
+- [x] Team management (admin): user list/filter, create account (no email
+      invite yet — admin sets and shares an initial password directly, see
+      Blockers), edit role/department, deactivate/reactivate (wired to
+      `destroyAllSessionsForUser()` pattern, run inside the same
+      transaction as the status flip per `docs/permissions.md` hard rule
+      3), admin-initiated password reset.
+- [x] Nav entries added for every new route (`lib/nav/main-nav.ts`), Team
+      gated to `CAN_MANAGE_USERS`.
 
-## Phase 4 — Digital Archive & Public Gallery
+### Bugs found and fixed during manual browser verification
 
-- [ ] Private local-disk storage + safe path generation.
-- [ ] Upload validation (type/size, server-side, not extension-trusting).
-- [ ] Thumbnail generation for images.
-- [ ] Archive browse/search UI.
-- [ ] Public gallery + approval/revocation workflow.
+These were real defects caught by actually clicking through the app, not
+just by `tsc`/`lint`/`build` (which all passed throughout and caught none
+of them) — kept here as the concrete justification for always browser-
+testing UI changes on this project:
+
+1. **`<Button render={<Link .../>}>` without `nativeButton={false}`** — Base
+   UI's `Button` defaults to expecting a real `<button>`; rendering it as a
+   `<Link>` (an `<a>`) throws a console warning and degrades accessibility
+   semantics. Fixed across all 12 occurrences introduced in Phase 3.
+2. **`formData.get()` returns `null`, not `""`, for a field absent from the
+   DOM** (e.g. an admin-only select that didn't render for a non-admin, or
+   a conditionally-hidden project picker) — every feature's `emptyToUndefined`
+   zod preprocessor only handled empty-string, not `null`, so a missing
+   optional field crashed validation with "expected string, received null"
+   instead of being treated as absent. Fixed in all 6 `features/*/schema.ts`
+   files; this is a one-line helper repeated per feature, worth checking
+   first if a *new* optional form field reports this same error.
+3. **Base UI `Select` needs an `items` prop to display a human label** —
+   without it, `SelectValue` falls back to showing the raw stored value
+   (e.g. a user's UUID) once a selection is committed via keyboard
+   navigation, not just a mouse click. Fixed by adding `items={...}` (value
+   → label pairs) to every dynamic-options `Select` introduced in Phase 3.
+   Any *new* `Select` bound to IDs (users, projects, etc.) needs this too.
+4. **Base UI `Select` warns if an uncontrolled `defaultValue` changes after
+   mount** — `TaskStatusForm` re-renders in place (via `revalidatePath`,
+   no navigation) after a successful status update, so its `status` prop
+   changes on an already-mounted instance. Fixed by keying the component
+   on the server-confirmed value (`key={`${status}:${notes}`}`) so it
+   remounts fresh instead. Any other client form that both (a) reads a
+   server value into an uncontrolled `Select`/`defaultValue` and (b) can
+   be re-rendered in place without navigating (no `redirect()` on success)
+   needs the same treatment.
+
+## Phase 4 — Digital Archive & Public Gallery (complete)
+
+- [x] Private local-disk storage + safe path generation (`lib/storage/paths.ts`,
+      `lib/storage/file-io.ts`).
+- [x] Upload validation — server-side magic-byte sniffing via `file-type`
+      (not extension-trusting), size limits (`lib/storage/validate-upload.ts`).
+- [x] Thumbnail generation for images via `jimp` (`lib/storage/thumbnail.ts`).
+- [x] Archive browse/search UI (`/archive`) — filename/description/keyword
+      search, category and project filters, status badges.
+- [x] Public gallery + approval/revocation workflow: upload → submit for
+      gallery → admin review queue (`/archive/review`) approve/reject with
+      caption/reason → live on unauthenticated `/gallery` → admin revoke
+      pulls it immediately. Every byte-serving route (`app/api/media/[id]`,
+      `app/api/public/media/[id]`, and their `/thumbnail` variants)
+      re-checks permission/approval status per request rather than trusting
+      a cached listing, per `docs/permissions.md` hard rule 5.
+- [x] **Manually verified end-to-end in a real browser**: uploaded a PNG
+      through `/archive/upload`, confirmed thumbnail + metadata rendered on
+      the detail page, submitted it for the public gallery, approved it
+      with a caption from `/archive/review`, confirmed it rendered on the
+      unauthenticated `/gallery` page in a separate tab with no session,
+      then revoked it and confirmed it was removed from `/gallery`
+      immediately (no stale cache).
+
+### Bug found and fixed during manual build/browser verification
+
+1. **`/gallery` had no `dynamic` export, so Next.js tried to statically
+   prerender it at build time** — `next build` failed outright trying to
+   query `media_approvals` during the static-generation phase (no request
+   context, and build-time DB availability shouldn't be a prerequisite for
+   a page whose content changes whenever an admin approves/revokes
+   something anyway). Fixed by adding
+   `export const dynamic = "force-dynamic"` to
+   `app/(public)/gallery/page.tsx`. `next build` now completes cleanly end
+   to end (confirmed) and the page still updates live. Any other page under
+   `app/(public)/` that queries the DB without an auth check (which would
+   otherwise force dynamic rendering implicitly via `cookies()`) needs the
+   same treatment.
 
 ## Phase 5 — Reporting & administration
 

@@ -52,6 +52,25 @@ export async function requireProjectAccess(
   return roleInProject;
 }
 
+/**
+ * Throws ForbiddenError unless the user is SYSTEM_ADMIN or is specifically
+ * the MANAGER of this project. Deliberately narrower than
+ * requireProjectAccess — LEADERSHIP has org-wide *view* access but no
+ * edit/archive/member-management rights (docs/permissions.md matrix), so it
+ * must not be granted here.
+ */
+export async function requireProjectManager(
+  user: CurrentUserLike,
+  projectId: string,
+): Promise<void> {
+  if (user.role === "SYSTEM_ADMIN") return;
+
+  const roleInProject = await getProjectRole(user.id, projectId);
+  if (roleInProject !== "MANAGER") {
+    throw new ForbiddenError("Only the project manager or an admin can do that.");
+  }
+}
+
 /** Returns the set of project IDs a non-org-wide user is assigned to. */
 export async function assignedProjectIds(userId: string): Promise<string[]> {
   const [memberships, managed] = await Promise.all([

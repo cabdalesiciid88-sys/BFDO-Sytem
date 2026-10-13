@@ -1,5 +1,17 @@
 import type { Role } from "@prisma/client";
-import { LayoutDashboard, type LucideIcon } from "lucide-react";
+import { CAN_MANAGE_USERS, CAN_REVIEW_PUBLIC_MEDIA } from "@/lib/permissions/roles";
+import {
+  Archive,
+  BadgeCheck,
+  CalendarClock,
+  CheckSquare,
+  FolderKanban,
+  Gavel,
+  LayoutDashboard,
+  UserCog,
+  Users,
+  type LucideIcon,
+} from "lucide-react";
 
 export type NavItem = {
   label: string;
@@ -17,6 +29,19 @@ export type NavItem = {
  */
 export const MAIN_NAV: NavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { label: "Projects", href: "/projects", icon: FolderKanban },
+  { label: "Activity Register", href: "/activities", icon: CalendarClock },
+  { label: "Tasks", href: "/tasks", icon: CheckSquare },
+  { label: "Meetings", href: "/meetings", icon: Users },
+  { label: "Decisions", href: "/decisions", icon: Gavel },
+  { label: "Digital Archive", href: "/archive", icon: Archive },
+  {
+    label: "Gallery Review",
+    href: "/archive/review",
+    icon: BadgeCheck,
+    allowedRoles: CAN_REVIEW_PUBLIC_MEDIA,
+  },
+  { label: "Team", href: "/team", icon: UserCog, allowedRoles: CAN_MANAGE_USERS },
 ];
 
 export function visibleNavItems(items: NavItem[], role: Role): NavItem[] {
