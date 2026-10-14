@@ -25,8 +25,21 @@ function createPrismaClient() {
   });
 }
 
-export const prisma = globalForPrisma.prisma ?? createPrismaClient();
-
-if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prisma = prisma;
+function getPrismaClient(): PrismaClient {
+  const client = globalForPrisma.prisma ?? createPrismaClient();
+  if (process.env.NODE_ENV !== "production") {
+    globalForPrisma.prisma = client;
+  }
+  return client;
 }
+
+// Lazy: constructing the real client eagerly at module scope means just
+// *importing* this file throws without DATABASE_URL set — which breaks
+// `next build`'s "Collecting page data" step, since that step loads every
+// route module (even fully dynamic ones with no static output) to read
+// their config. Deferring construction to first property access means the
+// build only needs this to succeed at actual request time, when the real
+// production DATABASE_URL is configured.
+export const prisma = new Proxy({} as PrismaClient, {
+  get: (_target, prop) => Reflect.get(getPrismaClient(), prop),
+});
