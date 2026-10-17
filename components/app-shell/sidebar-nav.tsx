@@ -10,9 +10,18 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import type { NavItem } from "@/lib/nav/main-nav";
 
-export function SidebarNav({ items }: { items: NavItem[] }) {
+// icon is a pre-rendered element (built server-side in AppSidebar), not a
+// component reference — a component *function* can't cross the Server->
+// Client boundary into this "use client" component (Next.js RSC rule), but
+// an already-rendered element is a plain serializable object and is fine.
+export type RenderedNavItem = {
+  href: string;
+  label: string;
+  icon: React.ReactNode;
+};
+
+export function SidebarNav({ items }: { items: RenderedNavItem[] }) {
   const pathname = usePathname();
 
   // Pick the single longest-prefix match (not "every item whose href
@@ -36,7 +45,7 @@ export function SidebarNav({ items }: { items: NavItem[] }) {
                   tooltip={item.label}
                   isActive={isActive}
                 >
-                  <item.icon />
+                  {item.icon}
                   <span>{item.label}</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>

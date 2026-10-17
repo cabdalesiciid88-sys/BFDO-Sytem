@@ -5,7 +5,15 @@ import { MAIN_NAV, visibleNavItems } from "@/lib/nav/main-nav";
 import type { Role } from "@prisma/client";
 
 export function AppSidebar({ role }: { role: Role }) {
-  const mainItems = visibleNavItems(MAIN_NAV, role);
+  // Icons are rendered here (server side) into plain elements before being
+  // handed to SidebarNav ("use client") — a lucide-react component
+  // *function* can't cross the Server->Client boundary, only an
+  // already-rendered element can. See sidebar-nav.tsx's RenderedNavItem.
+  const mainItems = visibleNavItems(MAIN_NAV, role).map((item) => ({
+    href: item.href,
+    label: item.label,
+    icon: <item.icon />,
+  }));
 
   return (
     <Sidebar collapsible="icon" variant="floating">
