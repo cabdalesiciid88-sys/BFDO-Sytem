@@ -27,9 +27,7 @@ function createPrismaClient() {
 
 function getPrismaClient(): PrismaClient {
   const client = globalForPrisma.prisma ?? createPrismaClient();
-  if (process.env.NODE_ENV !== "production") {
-    globalForPrisma.prisma = client;
-  }
+  globalForPrisma.prisma = client;
   return client;
 }
 
