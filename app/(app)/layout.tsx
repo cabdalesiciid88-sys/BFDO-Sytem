@@ -11,7 +11,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const user = await requireUser();
 
   return (
-    <SidebarProvider>
+    <SidebarProvider defaultOpen={false}>
       <AppSidebar role={user.role} />
       <SidebarInset>
         <header className="flex h-14 shrink-0 items-center justify-between border-b px-4">

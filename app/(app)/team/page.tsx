@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth/current-user";
 import { listUsers } from "@/features/team/queries";
 import { CAN_MANAGE_USERS } from "@/lib/permissions/roles";
+import { PageHeader } from "@/components/app-shell/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -46,15 +47,13 @@ export default async function TeamPage({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Team</h1>
-          <p className="text-sm text-muted-foreground">
-            {users.length} user{users.length === 1 ? "" : "s"}
-          </p>
-        </div>
-        <Button nativeButton={false} render={<Link href="/team/new" />}>Add team member</Button>
-      </div>
+      <PageHeader
+        title="Team"
+        description={`${users.length} user${users.length === 1 ? "" : "s"}`}
+        actions={
+          <Button nativeButton={false} render={<Link href="/team/new" />}>Add team member</Button>
+        }
+      />
 
       <form method="get" className="flex flex-wrap items-end gap-3">
         <div className="flex-1 min-w-48">

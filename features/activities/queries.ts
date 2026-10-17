@@ -12,6 +12,7 @@ export type ActivityListFilters = {
   projectId?: string;
   category?: string;
   status?: "ACTIVE" | "ARCHIVED";
+  take?: number;
 };
 
 /**
@@ -55,6 +56,7 @@ export async function listActivities(user: CurrentUserLike, filters: ActivityLis
       _count: { select: { participants: true, activityMedia: true } },
     },
     orderBy: { activityDate: "desc" },
+    take: filters.take,
   });
 }
 

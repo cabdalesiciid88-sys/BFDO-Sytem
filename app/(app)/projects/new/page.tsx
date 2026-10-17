@@ -3,6 +3,7 @@ import { requireUser } from "@/lib/auth/current-user";
 import { listActiveUsersForAssignment } from "@/features/projects/queries";
 import { ProjectForm } from "@/features/projects/components/project-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageHeader } from "@/components/app-shell/page-header";
 import { CAN_CREATE_PROJECT } from "@/lib/permissions/roles";
 
 export const metadata = { title: "New project — BFDO Management System" };
@@ -18,7 +19,7 @@ export default async function NewProjectPage() {
 
   return (
     <div className="max-w-2xl space-y-4">
-      <h1 className="text-2xl font-semibold tracking-tight">New project</h1>
+      <PageHeader title="New project" />
       <Card>
         <CardHeader>
           <CardTitle>Project details</CardTitle>

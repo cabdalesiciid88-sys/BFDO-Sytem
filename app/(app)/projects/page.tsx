@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireUser } from "@/lib/auth/current-user";
 import { listProjectCategories, listProjects } from "@/features/projects/queries";
 import { ProjectFilters } from "@/features/projects/components/project-filters";
+import { PageHeader } from "@/components/app-shell/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -44,17 +45,15 @@ export default async function ProjectsPage({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Projects</h1>
-          <p className="text-sm text-muted-foreground">
-            {projects.length} project{projects.length === 1 ? "" : "s"}
-          </p>
-        </div>
-        {CAN_CREATE_PROJECT.has(user.role) ? (
-          <Button nativeButton={false} render={<Link href="/projects/new" />}>New project</Button>
-        ) : null}
-      </div>
+      <PageHeader
+        title="Projects"
+        description={`${projects.length} project${projects.length === 1 ? "" : "s"}`}
+        actions={
+          CAN_CREATE_PROJECT.has(user.role) ? (
+            <Button nativeButton={false} render={<Link href="/projects/new" />}>New project</Button>
+          ) : undefined
+        }
+      />
 
       <ProjectFilters
         search={params.search}

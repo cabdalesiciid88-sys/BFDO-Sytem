@@ -3,6 +3,7 @@ import { format } from "date-fns";
 import { requireUser } from "@/lib/auth/current-user";
 import { listMeetableProjects, listMeetings } from "@/features/meetings/queries";
 import { MeetingFilters } from "@/features/meetings/components/meeting-filters";
+import { PageHeader } from "@/components/app-shell/page-header";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -32,19 +33,17 @@ export default async function MeetingsPage({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Meetings</h1>
-          <p className="text-sm text-muted-foreground">
-            {meetings.length} meeting{meetings.length === 1 ? "" : "s"}
-          </p>
-        </div>
-        {canCreate ? (
-          <Button nativeButton={false} render={<Link href="/meetings/new" />}>
-            Record meeting
-          </Button>
-        ) : null}
-      </div>
+      <PageHeader
+        title="Meetings"
+        description={`${meetings.length} meeting${meetings.length === 1 ? "" : "s"}`}
+        actions={
+          canCreate ? (
+            <Button nativeButton={false} render={<Link href="/meetings/new" />}>
+              Record meeting
+            </Button>
+          ) : undefined
+        }
+      />
 
       <MeetingFilters search={params.search} projectId={params.projectId} projects={meetableProjects} />
 

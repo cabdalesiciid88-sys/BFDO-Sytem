@@ -33,6 +33,7 @@ export default async function TasksPage({
     priority?: string;
     projectId?: string;
     onlyMine?: string;
+    overdue?: string;
   }>;
 }) {
   const user = await requireUser();
@@ -45,6 +46,7 @@ export default async function TasksPage({
       priority: params.priority as TaskPriority | undefined,
       projectId: params.projectId,
       onlyMine: params.onlyMine === "1",
+      overdue: params.overdue === "1",
     }),
     listFilterableProjects(user),
     listTaskableProjects(user),

@@ -6,6 +6,7 @@ import { canManageMeeting } from "@/lib/permissions/meeting-access";
 import { ForbiddenError } from "@/lib/permissions/errors";
 import { MeetingForm } from "@/features/meetings/components/meeting-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageHeader } from "@/components/app-shell/page-header";
 
 export const metadata = { title: "Edit meeting — BFDO Management System" };
 
@@ -28,7 +29,7 @@ export default async function EditMeetingPage({
 
   return (
     <div className="max-w-2xl space-y-4">
-      <h1 className="text-2xl font-semibold tracking-tight">Edit meeting</h1>
+      <PageHeader title="Edit meeting" />
       <Card>
         <CardHeader>
           <CardTitle>{meeting.title}</CardTitle>

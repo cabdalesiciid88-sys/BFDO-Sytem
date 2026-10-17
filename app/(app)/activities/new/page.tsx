@@ -4,6 +4,7 @@ import { listCreatableProjects } from "@/features/activities/queries";
 import { listActiveUsers } from "@/lib/users/queries";
 import { ActivityForm } from "@/features/activities/components/activity-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageHeader } from "@/components/app-shell/page-header";
 import { CAN_CREATE_ACTIVITY } from "@/lib/permissions/roles";
 
 export const metadata = { title: "Record activity — BFDO Management System" };
@@ -20,7 +21,7 @@ export default async function NewActivityPage() {
 
   return (
     <div className="max-w-2xl space-y-4">
-      <h1 className="text-2xl font-semibold tracking-tight">Record activity</h1>
+      <PageHeader title="Record activity" />
       <Card>
         <CardHeader>
           <CardTitle>Activity details</CardTitle>

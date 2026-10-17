@@ -3,6 +3,7 @@ import { requireUser } from "@/lib/auth/current-user";
 import { CAN_MANAGE_SETTINGS } from "@/lib/permissions/roles";
 import { getOrgSettings } from "@/features/settings/queries";
 import { SettingsForm } from "@/features/settings/components/settings-form";
+import { PageHeader } from "@/components/app-shell/page-header";
 
 export const metadata = { title: "Settings — BFDO Management System" };
 
@@ -14,12 +15,7 @@ export default async function SettingsPage() {
 
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
-        <p className="text-sm text-muted-foreground">
-          Organization-wide configuration. Admin-only.
-        </p>
-      </div>
+      <PageHeader title="Settings" description="Organization-wide configuration. Admin-only." />
 
       <SettingsForm
         organizationName={settings.organizationName}

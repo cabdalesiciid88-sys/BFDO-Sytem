@@ -3,6 +3,7 @@ import { format } from "date-fns";
 import { requireUser } from "@/lib/auth/current-user";
 import { listDecisions } from "@/features/decisions/queries";
 import { listMeetableProjects } from "@/features/meetings/queries";
+import { PageHeader } from "@/components/app-shell/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,19 +43,17 @@ export default async function DecisionsPage({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Decisions</h1>
-          <p className="text-sm text-muted-foreground">
-            {decisions.length} decision{decisions.length === 1 ? "" : "s"}
-          </p>
-        </div>
-        {canCreate ? (
-          <Button nativeButton={false} render={<Link href="/decisions/new" />}>
-            Record decision
-          </Button>
-        ) : null}
-      </div>
+      <PageHeader
+        title="Decisions"
+        description={`${decisions.length} decision${decisions.length === 1 ? "" : "s"}`}
+        actions={
+          canCreate ? (
+            <Button nativeButton={false} render={<Link href="/decisions/new" />}>
+              Record decision
+            </Button>
+          ) : undefined
+        }
+      />
 
       <form method="get" className="flex flex-wrap items-end gap-3">
         <div className="flex-1 min-w-48">

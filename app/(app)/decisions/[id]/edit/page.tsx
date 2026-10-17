@@ -6,6 +6,7 @@ import { canManageDecision } from "@/lib/permissions/meeting-access";
 import { ForbiddenError } from "@/lib/permissions/errors";
 import { DecisionForm } from "@/features/decisions/components/decision-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageHeader } from "@/components/app-shell/page-header";
 
 export const metadata = { title: "Edit decision — BFDO Management System" };
 
@@ -28,7 +29,7 @@ export default async function EditDecisionPage({
 
   return (
     <div className="max-w-2xl space-y-4">
-      <h1 className="text-2xl font-semibold tracking-tight">Edit decision</h1>
+      <PageHeader title="Edit decision" />
       <Card>
         <CardHeader>
           <CardTitle>{decision.description}</CardTitle>

@@ -5,6 +5,7 @@ import { ForbiddenError } from "@/lib/permissions/errors";
 import { requireProjectManager } from "@/lib/permissions/project-access";
 import { ProjectForm } from "@/features/projects/components/project-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageHeader } from "@/components/app-shell/page-header";
 
 export const metadata = { title: "Edit project — BFDO Management System" };
 
@@ -28,7 +29,7 @@ export default async function EditProjectPage({
 
   return (
     <div className="max-w-2xl space-y-4">
-      <h1 className="text-2xl font-semibold tracking-tight">Edit project</h1>
+      <PageHeader title="Edit project" />
       <Card>
         <CardHeader>
           <CardTitle>{project.title}</CardTitle>

@@ -7,6 +7,7 @@ import {
   listCreatableProjects,
 } from "@/features/activities/queries";
 import { ActivityFilters } from "@/features/activities/components/activity-filters";
+import { PageHeader } from "@/components/app-shell/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -41,17 +42,15 @@ export default async function ActivitiesPage({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Activity Register</h1>
-          <p className="text-sm text-muted-foreground">
-            {activities.length} activit{activities.length === 1 ? "y" : "ies"}
-          </p>
-        </div>
-        {creatableProjects.length > 0 || user.role === "SYSTEM_ADMIN" ? (
-          <Button nativeButton={false} render={<Link href="/activities/new" />}>Record activity</Button>
-        ) : null}
-      </div>
+      <PageHeader
+        title="Activity Register"
+        description={`${activities.length} activit${activities.length === 1 ? "y" : "ies"}`}
+        actions={
+          creatableProjects.length > 0 || user.role === "SYSTEM_ADMIN" ? (
+            <Button nativeButton={false} render={<Link href="/activities/new" />}>Record activity</Button>
+          ) : undefined
+        }
+      />
 
       <ActivityFilters
         search={params.search}

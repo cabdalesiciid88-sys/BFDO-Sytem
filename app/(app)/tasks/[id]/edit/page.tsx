@@ -6,6 +6,7 @@ import { canManageTask } from "@/lib/permissions/task-access";
 import { ForbiddenError } from "@/lib/permissions/errors";
 import { TaskForm } from "@/features/tasks/components/task-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageHeader } from "@/components/app-shell/page-header";
 
 export const metadata = { title: "Edit task — BFDO Management System" };
 
@@ -28,7 +29,7 @@ export default async function EditTaskPage({
 
   return (
     <div className="max-w-2xl space-y-4">
-      <h1 className="text-2xl font-semibold tracking-tight">Edit task</h1>
+      <PageHeader title="Edit task" />
       <Card>
         <CardHeader>
           <CardTitle>{task.title}</CardTitle>

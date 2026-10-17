@@ -6,6 +6,7 @@ import { requireUser } from "@/lib/auth/current-user";
 import { listApprovedApprovals, listPendingApprovals } from "@/features/gallery/queries";
 import { approveMedia, rejectMedia, revokeMedia } from "@/features/gallery/actions";
 import { CAN_REVIEW_PUBLIC_MEDIA } from "@/lib/permissions/roles";
+import { PageHeader } from "@/components/app-shell/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -21,12 +22,10 @@ export default async function MediaReviewPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Public gallery review</h1>
-        <p className="text-sm text-muted-foreground">
-          Approve, reject, or revoke submissions for the public media gallery.
-        </p>
-      </div>
+      <PageHeader
+        title="Public gallery review"
+        description="Approve, reject, or revoke submissions for the public media gallery."
+      />
 
       <Card>
         <CardHeader>

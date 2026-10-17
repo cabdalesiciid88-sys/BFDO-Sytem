@@ -4,6 +4,7 @@ import { listMeetableProjects } from "@/features/meetings/queries";
 import { listActiveUsers } from "@/lib/users/queries";
 import { DecisionForm } from "@/features/decisions/components/decision-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageHeader } from "@/components/app-shell/page-header";
 import { CAN_RECORD_MEETINGS } from "@/lib/permissions/roles";
 
 export const metadata = { title: "Record decision — BFDO Management System" };
@@ -17,7 +18,7 @@ export default async function NewDecisionPage() {
 
   return (
     <div className="max-w-2xl space-y-4">
-      <h1 className="text-2xl font-semibold tracking-tight">Record decision</h1>
+      <PageHeader title="Record decision" />
       <Card>
         <CardHeader>
           <CardTitle>Decision details</CardTitle>

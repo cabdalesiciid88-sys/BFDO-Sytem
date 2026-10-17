@@ -13,6 +13,7 @@ export type TaskListFilters = {
   status?: TaskStatus;
   priority?: TaskPriority;
   onlyMine?: boolean;
+  overdue?: boolean;
 };
 
 /**
@@ -35,6 +36,9 @@ export async function listTasks(user: CurrentUserLike, filters: TaskListFilters 
   }
 
   if (filters.onlyMine) and.push({ assigneeId: user.id });
+  if (filters.overdue) {
+    and.push({ status: { not: "COMPLETED" }, dueDate: { lt: new Date() } });
+  }
   if (filters.projectId) and.push({ projectId: filters.projectId });
   if (filters.status) and.push({ status: filters.status });
   if (filters.priority) and.push({ priority: filters.priority });

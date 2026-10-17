@@ -4,6 +4,7 @@ import { format } from "date-fns";
 import { requireUser } from "@/lib/auth/current-user";
 import { CAN_VIEW_AUDIT_LOGS } from "@/lib/permissions/roles";
 import { listAuditLogs, listAuditTargetTypes } from "@/features/audit/queries";
+import { PageHeader } from "@/components/app-shell/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -70,12 +71,10 @@ export default async function AuditLogPage({
 
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Audit Logs</h1>
-        <p className="text-sm text-muted-foreground">
-          {total} event{total === 1 ? "" : "s"} — append-only, admin-only.
-        </p>
-      </div>
+      <PageHeader
+        title="Audit Logs"
+        description={`${total} event${total === 1 ? "" : "s"} — append-only, admin-only.`}
+      />
 
       <form method="get" className="flex flex-wrap items-end gap-3">
         <div className="min-w-48">

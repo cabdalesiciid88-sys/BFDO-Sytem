@@ -13,6 +13,7 @@ import {
 import { listActivityCategories } from "@/features/activities/queries";
 import { reportFiltersSchema, type ReportType } from "@/features/reports/schema";
 import type { ApprovalStatus, MediaCategory, Role } from "@prisma/client";
+import { PageHeader } from "@/components/app-shell/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -92,12 +93,10 @@ export default async function ReportsPage({
 
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Reports</h1>
-        <p className="text-sm text-muted-foreground">
-          Report data is always computed live — nothing here is cached.
-        </p>
-      </div>
+      <PageHeader
+        title="Reports"
+        description="Report data is always computed live — nothing here is cached."
+      />
 
       <div className="flex flex-wrap gap-2 border-b pb-2">
         {tabs.map((t) => (

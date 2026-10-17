@@ -5,6 +5,7 @@ import { canEditMediaMetadata } from "@/lib/permissions/media-access";
 import { ForbiddenError } from "@/lib/permissions/errors";
 import { EditMetadataForm } from "@/features/archive/components/edit-metadata-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageHeader } from "@/components/app-shell/page-header";
 
 export const metadata = { title: "Edit file details — BFDO Management System" };
 
@@ -31,7 +32,7 @@ export default async function EditMediaPage({
 
   return (
     <div className="max-w-2xl space-y-4">
-      <h1 className="text-2xl font-semibold tracking-tight">Edit file details</h1>
+      <PageHeader title="Edit file details" />
       <Card>
         <CardHeader>
           <CardTitle>{media.originalFilename}</CardTitle>

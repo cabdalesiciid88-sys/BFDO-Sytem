@@ -10,7 +10,7 @@ export default async function LoginPage() {
   await redirectIfAuthenticated();
 
   return (
-    <main className="flex min-h-svh items-center justify-center bg-muted/30 px-4">
+    <main className="flex min-h-svh items-center justify-center bg-gradient-to-br from-background via-background to-primary/10 px-4">
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle>BFDO Management System</CardTitle>

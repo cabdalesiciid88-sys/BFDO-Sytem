@@ -4,6 +4,7 @@ import { listMeetableProjects } from "@/features/meetings/queries";
 import { listActiveUsers } from "@/lib/users/queries";
 import { MeetingForm } from "@/features/meetings/components/meeting-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageHeader } from "@/components/app-shell/page-header";
 import { CAN_RECORD_MEETINGS } from "@/lib/permissions/roles";
 
 export const metadata = { title: "Record meeting — BFDO Management System" };
@@ -17,7 +18,7 @@ export default async function NewMeetingPage() {
 
   return (
     <div className="max-w-2xl space-y-4">
-      <h1 className="text-2xl font-semibold tracking-tight">Record meeting</h1>
+      <PageHeader title="Record meeting" />
       <Card>
         <CardHeader>
           <CardTitle>Meeting details</CardTitle>

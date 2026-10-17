@@ -70,6 +70,7 @@ export async function getDashboardMetrics(user: CurrentUserLike) {
     myOpenTaskCount,
     upcomingMeetings,
     openDecisionCount,
+    totalDecisionCount,
   ] = await Promise.all([
     prisma.project.groupBy({ by: ["status"], where: projectWhere, _count: true }),
     prisma.activity.count({ where: activityWhere }),
@@ -92,6 +93,7 @@ export async function getDashboardMetrics(user: CurrentUserLike) {
     prisma.decision.count({
       where: { ...decisionWhere, status: { in: ["OPEN", "IN_PROGRESS"] } },
     }),
+    prisma.decision.count({ where: decisionWhere }),
   ]);
 
   return {
@@ -102,5 +104,16 @@ export async function getDashboardMetrics(user: CurrentUserLike) {
     myOpenTaskCount,
     upcomingMeetings,
     openDecisionCount,
+    totalDecisionCount,
   };
+}
+
+/** Lightweight preview for the dashboard's right-panel "Team" widget. */
+export async function getTeamPreview(limit = 5) {
+  return prisma.user.findMany({
+    where: { status: "ACTIVE" },
+    select: { id: true, fullName: true, role: true },
+    orderBy: { lastLoginAt: "desc" },
+    take: limit,
+  });
 }

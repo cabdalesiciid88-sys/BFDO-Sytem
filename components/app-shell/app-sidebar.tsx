@@ -1,15 +1,6 @@
 import Link from "next/link";
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-} from "@/components/ui/sidebar";
+import { Sidebar, SidebarContent, SidebarHeader } from "@/components/ui/sidebar";
+import { SidebarNav } from "@/components/app-shell/sidebar-nav";
 import { MAIN_NAV, visibleNavItems } from "@/lib/nav/main-nav";
 import type { Role } from "@prisma/client";
 
@@ -17,28 +8,22 @@ export function AppSidebar({ role }: { role: Role }) {
   const mainItems = visibleNavItems(MAIN_NAV, role);
 
   return (
-    <Sidebar collapsible="icon">
+    <Sidebar collapsible="icon" variant="floating">
       <SidebarHeader className="px-3 py-3">
-        <Link href="/dashboard" className="text-sm font-semibold">
-          BFDO Management System
+        <Link
+          href="/dashboard"
+          className="flex items-center gap-2 text-sm font-semibold"
+        >
+          <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-sidebar-primary text-sm font-bold text-sidebar-primary-foreground">
+            B
+          </span>
+          <span className="group-data-[collapsible=icon]:hidden">
+            BFDO Management System
+          </span>
         </Link>
       </SidebarHeader>
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel>Main</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {mainItems.map((item) => (
-                <SidebarMenuItem key={item.href}>
-                  <SidebarMenuButton render={<Link href={item.href} />} tooltip={item.label}>
-                    <item.icon />
-                    <span>{item.label}</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        <SidebarNav items={mainItems} />
       </SidebarContent>
     </Sidebar>
   );

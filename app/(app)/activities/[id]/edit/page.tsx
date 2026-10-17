@@ -6,6 +6,7 @@ import { canEditActivity } from "@/lib/permissions/activity-access";
 import { ForbiddenError } from "@/lib/permissions/errors";
 import { ActivityForm } from "@/features/activities/components/activity-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageHeader } from "@/components/app-shell/page-header";
 
 export const metadata = { title: "Edit activity — BFDO Management System" };
 
@@ -28,7 +29,7 @@ export default async function EditActivityPage({
 
   return (
     <div className="max-w-2xl space-y-4">
-      <h1 className="text-2xl font-semibold tracking-tight">Edit activity</h1>
+      <PageHeader title="Edit activity" />
       <Card>
         <CardHeader>
           <CardTitle>{activity.title}</CardTitle>

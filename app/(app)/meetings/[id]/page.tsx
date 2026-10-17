@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DecisionForm } from "@/features/decisions/components/decision-form";
+import { PageHeader } from "@/components/app-shell/page-header";
 
 export default async function MeetingDetailPage({
   params,
@@ -30,17 +31,17 @@ export default async function MeetingDetailPage({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">{meeting.title}</h1>
-          <p className="text-sm text-muted-foreground">{format(meeting.heldAt, "MMM d, yyyy p")}</p>
-        </div>
-        {canManage ? (
-          <Button variant="outline" nativeButton={false} render={<Link href={`/meetings/${meeting.id}/edit`} />}>
-            Edit
-          </Button>
-        ) : null}
-      </div>
+      <PageHeader
+        title={meeting.title}
+        description={format(meeting.heldAt, "MMM d, yyyy p")}
+        actions={
+          canManage ? (
+            <Button variant="outline" nativeButton={false} render={<Link href={`/meetings/${meeting.id}/edit`} />}>
+              Edit
+            </Button>
+          ) : undefined
+        }
+      />
 
       <div className="grid gap-4 md:grid-cols-3">
         <Card className="md:col-span-2">

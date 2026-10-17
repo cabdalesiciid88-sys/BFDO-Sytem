@@ -1,9 +1,13 @@
 import Link from "next/link";
 import { format } from "date-fns";
+import { CheckSquare, FolderKanban, Gavel } from "lucide-react";
 import { requireUser } from "@/lib/auth/current-user";
 import { getDashboardMetrics } from "@/features/dashboard/queries";
 import { StatusBarChart } from "@/components/charts/status-bar-chart";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageHeader } from "@/components/app-shell/page-header";
+import { HeroStatCard } from "@/components/dashboard/hero-stat-card";
+import { ProgressCard } from "@/components/dashboard/progress-card";
 
 export const metadata = {
   title: "Dashboard — BFDO Management System",
@@ -12,33 +16,16 @@ export const metadata = {
 const PROJECT_STATUS_ORDER = ["PLANNED", "ACTIVE", "ON_HOLD", "COMPLETED", "ARCHIVED"] as const;
 const TASK_STATUS_ORDER = ["TODO", "IN_PROGRESS", "BLOCKED", "COMPLETED"] as const;
 
-function StatTile({
-  label,
-  value,
-  tone = "default",
-}: {
-  label: string;
-  value: number;
-  tone?: "default" | "destructive";
-}) {
-  return (
-    <Card>
-      <CardContent className="space-y-1">
-        <p className="text-sm text-muted-foreground">{label}</p>
-        <p className={tone === "destructive" && value > 0 ? "text-2xl font-semibold text-destructive" : "text-2xl font-semibold"}>
-          {value}
-        </p>
-      </CardContent>
-    </Card>
-  );
-}
-
 export default async function DashboardPage() {
   const user = await requireUser();
   const metrics = await getDashboardMetrics(user);
 
   const totalProjects = Object.values(metrics.projectsByStatus).reduce((a, b) => a + b, 0);
   const totalTasks = Object.values(metrics.tasksByStatus).reduce((a, b) => a + b, 0);
+  const completedProjects =
+    (metrics.projectsByStatus.COMPLETED ?? 0) + (metrics.projectsByStatus.ARCHIVED ?? 0);
+  const completedTasks = metrics.tasksByStatus.COMPLETED ?? 0;
+  const resolvedDecisions = metrics.totalDecisionCount - metrics.openDecisionCount;
 
   const projectChartData = PROJECT_STATUS_ORDER.map((status) => ({
     label: status.replaceAll("_", " "),
@@ -51,19 +38,24 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Welcome, {user.fullName}</h1>
-        <p className="text-sm text-muted-foreground">
-          You&apos;re signed in as {user.role.replaceAll("_", " ").toLowerCase()}.
-        </p>
-      </div>
+      <PageHeader
+        title={`Welcome, ${user.fullName}`}
+        description={`You're signed in as ${user.role.replaceAll("_", " ").toLowerCase()}.`}
+      />
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        <StatTile label="Projects" value={totalProjects} />
-        <StatTile label="Activities" value={metrics.activityCount} />
-        <StatTile label="Tasks" value={totalTasks} />
-        <StatTile label="Overdue tasks" value={metrics.overdueTaskCount} tone="destructive" />
-        <StatTile label="Open decisions" value={metrics.openDecisionCount} />
+      <div className="grid gap-4 sm:grid-cols-2">
+        <HeroStatCard
+          label="My open tasks"
+          value={metrics.myOpenTaskCount}
+          href="/tasks?onlyMine=1"
+          tone="violet"
+        />
+        <HeroStatCard
+          label="Overdue tasks"
+          value={metrics.overdueTaskCount}
+          href="/tasks?overdue=1"
+          tone="pink"
+        />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
@@ -94,16 +86,39 @@ export default async function DashboardPage() {
         </Card>
       </div>
 
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <ProgressCard
+          label="Tasks completed"
+          icon={CheckSquare}
+          value={completedTasks}
+          total={totalTasks}
+          accent="violet"
+        />
+        <ProgressCard
+          label="Projects completed"
+          icon={FolderKanban}
+          value={completedProjects}
+          total={totalProjects}
+          accent="neutral"
+        />
+        <ProgressCard
+          label="Decisions resolved"
+          icon={Gavel}
+          value={resolvedDecisions}
+          total={metrics.totalDecisionCount}
+          accent="pink"
+        />
+      </div>
+
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>My open tasks</CardTitle>
-            <CardDescription>Tasks assigned to you that aren&apos;t completed yet.</CardDescription>
+            <CardTitle>Activities</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-semibold">{metrics.myOpenTaskCount}</p>
-            <Link href="/tasks?onlyMine=1" className="text-sm text-muted-foreground hover:underline">
-              View my tasks
+            <p className="text-2xl font-semibold">{metrics.activityCount}</p>
+            <Link href="/activities" className="text-sm text-muted-foreground hover:underline">
+              View activity register
             </Link>
           </CardContent>
         </Card>

@@ -3,6 +3,7 @@ import { FileText } from "lucide-react";
 import { requireUser } from "@/lib/auth/current-user";
 import { listLinkableProjects, listMedia } from "@/features/archive/queries";
 import { MediaFilters } from "@/features/archive/components/media-filters";
+import { PageHeader } from "@/components/app-shell/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CAN_UPLOAD_MEDIA } from "@/lib/permissions/roles";
@@ -36,19 +37,17 @@ export default async function ArchivePage({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Digital Archive</h1>
-          <p className="text-sm text-muted-foreground">
-            {items.length} file{items.length === 1 ? "" : "s"}
-          </p>
-        </div>
-        {CAN_UPLOAD_MEDIA.has(user.role) ? (
-          <Button nativeButton={false} render={<Link href="/archive/upload" />}>
-            Upload file
-          </Button>
-        ) : null}
-      </div>
+      <PageHeader
+        title="Digital Archive"
+        description={`${items.length} file${items.length === 1 ? "" : "s"}`}
+        actions={
+          CAN_UPLOAD_MEDIA.has(user.role) ? (
+            <Button nativeButton={false} render={<Link href="/archive/upload" />}>
+              Upload file
+            </Button>
+          ) : undefined
+        }
+      />
 
       <MediaFilters
         search={params.search}
